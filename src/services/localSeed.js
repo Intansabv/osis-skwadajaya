@@ -1,0 +1,63 @@
+// Default fallback seed data when Supabase tables are not yet created in the SQL Editor
+export const INITIAL_ELECTION = {
+  id: '00000000-0000-0000-0000-000000000001',
+  school_name: 'SMP NEGERI 2 KWADUNGAN',
+  school_logo_url: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300&auto=format&fit=crop&q=80',
+  election_title: 'Pemilihan Ketua dan Wakil Ketua OSIS',
+  election_period: '2026/2027',
+  status: 'Berlangsung',
+  start_at: new Date().toISOString(),
+  end_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+export const INITIAL_CANDIDATES = [
+  {
+    id: '11111111-1111-1111-1111-111111111111',
+    election_id: '00000000-0000-0000-0000-000000000001',
+    number: 1,
+    chairman_name: 'Muhammad Fauzan R.',
+    vice_chairman_name: 'Nadhira Putri A.',
+    photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    slogan: 'Kreatif, Kolaboratif, Berkarakter & Menginspirasi',
+    vision: 'Mewujudkan OSIS SMP Negeri 2 Kwadungan sebagai wadah aspirasi siswa yang inovatif, berdaya saing, serta berlandaskan integritas dan budaya gotong royong.',
+    mission: '1. Mengoptimalkan program kerja berbasis digital dan teknologi kreatif.\n2. Meningkatkan partisipasi aktif siswa dalam kegiatan akademik dan non-akademik.\n3. Membangun komunikasi transparan antara siswa, OSIS, dan pihak sekolah.\n4. Menyelenggarakan kegiatan sosial di lingkungan sekolah.',
+    is_active: true,
+  },
+  {
+    id: '22222222-2222-2222-2222-222222222222',
+    election_id: '00000000-0000-0000-0000-000000000001',
+    number: 2,
+    chairman_name: 'Raditya Pratama S.',
+    vice_chairman_name: 'Syifa Azzahra K.',
+    photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+    slogan: 'Bersinergi Membangun Generasi Emas SMPN 2 Kwadungan yang Berprestasi',
+    vision: 'Menjadikan OSIS SMP Negeri 2 Kwadungan sebagai pelopor perubahan positif yang solid, adaptif, serta unggul dalam kepemimpinan dan prestasi ekstrakurikuler.',
+    mission: '1. Memfasilitasi pengembangan minat dan bakat melalui kompetisi berkala.\n2. Memperkuat rasa kekeluargaan dan solidaritas lintas kelas dan angkatan.\n3. Menciptakan lingkungan sekolah ramah, inklusif, dan bebas perundungan.\n4. Mengembangkan program kepemimpinan bagi pengurus ekstrakurikuler.',
+    is_active: true,
+  },
+  {
+    id: '33333333-3333-3333-3333-333333333333',
+    election_id: '00000000-0000-0000-0000-000000000001',
+    number: 3,
+    chairman_name: 'Ahmad Danial F.',
+    vice_chairman_name: 'Clarissa Maharani',
+    photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+    slogan: 'Aksi Nyata, Solusi Terbuka, Prestasi Gemilang',
+    vision: 'Mewujudkan OSIS SMP Negeri 2 Kwadungan yang tanggap, berintegritas tinggi, mandiri, serta menjunjung tinggi nilai kebhinekaan.',
+    mission: '1. Membuka kotak aspirasi digital 24/7 untuk menampung kritik & ide siswa.\n2. Mendukung kreativitas siswa dan pameran karya seni budaya.\n3. Mengadakan festival seni dan olahraga tahunan untuk mempererat kebersamaan.\n4. Menjalin kemitraan positif dengan alumni dan komunitas edukatif.',
+    is_active: true,
+  },
+];
+
+export const INITIAL_TOKENS = [
+  { id: 't-1', election_id: '00000000-0000-0000-0000-000000000001', token: 'A7K2P9', status: 'active', voter_code: 'VOT-001', voter_name: 'Pemilih 01', used_at: null },
+  { id: 't-2', election_id: '00000000-0000-0000-0000-000000000001', token: 'B82XQ4', status: 'active', voter_code: 'VOT-002', voter_name: 'Pemilih 02', used_at: null },
+  { id: 't-3', election_id: '00000000-0000-0000-0000-000000000001', token: 'Z9M3KL', status: 'active', voter_code: 'VOT-003', voter_name: 'Pemilih 03', used_at: null },
+  { id: 't-4', election_id: '00000000-0000-0000-0000-000000000001', token: 'C3F7Y8', status: 'active', voter_code: 'VOT-004', voter_name: 'Pemilih 04', used_at: null },
+  { id: 't-5', election_id: '00000000-0000-0000-0000-000000000001', token: 'H2P9R4', status: 'active', voter_code: 'VOT-005', voter_name: 'Pemilih 05', used_at: null },
+  { id: 't-6', election_id: '00000000-0000-0000-0000-000000000001', token: 'X4K1M9', status: 'active', voter_code: 'VOT-006', voter_name: 'Pemilih 06', used_at: null },
+  { id: 't-7', election_id: '00000000-0000-0000-0000-000000000001', token: 'E7B2V6', status: 'active', voter_code: 'VOT-007', voter_name: 'Pemilih 07', used_at: null },
+  { id: 't-8', election_id: '00000000-0000-0000-0000-000000000001', token: 'W9Q3L8', status: 'active', voter_code: 'VOT-008', voter_name: 'Pemilih 08', used_at: null },
+  { id: 't-9', election_id: '00000000-0000-0000-0000-000000000001', token: 'T5R1Z4', status: 'active', voter_code: 'VOT-009', voter_name: 'Pemilih 09', used_at: null },
+  { id: 't-10', election_id: '00000000-0000-0000-0000-000000000001', token: 'M8X2K7', status: 'active', voter_code: 'VOT-010', voter_name: 'Pemilih 10', used_at: null },
+];
