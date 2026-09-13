@@ -1,0 +1,10 @@
+{
+  "name": "E-OSIS SKWADA",
+  "description": "Aplikasi Web E-Voting Pemilihan Ketua dan Wakil Ketua OSIS SMP NEGERI 2 KWADUNGAN dengan Autentikasi QR Token dan Backend Supabase",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
