@@ -1,117 +1,182 @@
 import { formatTokenInput, isValidTokenFormat } from '../utils/token';
 import { settingsService } from './settingsService';
-import { candidateService } from './candidateService';
-import { tokenService } from './tokenService';
 import { supabase } from './supabase';
 
 const LOCAL_STORAGE_VOTES_KEY = 'e_osis_local_votes';
 
+/**
+ * Service voting E-OSIS SKWADA
+ *
+ * Semua proses voting menggunakan Supabase RPC:
+ * - validate_voter_token(p_token)
+ * - cast_vote(p_token, p_candidate_id)
+ * - get_election_results(p_election_id)
+ *
+ * Tidak menggunakan:
+ * - /api/vote/validate
+ * - /api/vote/cast
+ * - localStorage sebagai sumber kebenaran voting
+ */
+
+/**
+ * Ambil hasil voting yang tersimpan lokal.
+ *
+ * Fungsi ini hanya dipertahankan untuk kompatibilitas
+ * dengan kemungkinan kode lama.
+ *
+ * Voting production TIDAK menggunakan localStorage.
+ */
 function getLocalVotes() {
-  const saved = localStorage.getItem(LOCAL_STORAGE_VOTES_KEY);
-  return saved ? JSON.parse(saved) : [];
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_VOTES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.warn('Gagal membaca local votes:', error);
+    return [];
+  }
 }
 
-function addLocalVote(vote) {
-  const list = getLocalVotes();
-  list.push(vote);
-  localStorage.setItem(LOCAL_STORAGE_VOTES_KEY, JSON.stringify(list));
+/**
+ * Hapus data voting lokal.
+ *
+ * Tidak digunakan sebagai sumber data voting production.
+ */
+function clearLocalVotes() {
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_VOTES_KEY);
+  } catch (error) {
+    console.warn('Gagal membersihkan local votes:', error);
+  }
+}
+
+/**
+ * Normalisasi error Supabase menjadi object sederhana.
+ */
+function normalizeSupabaseError(error, fallbackCode = 'SUPABASE_ERROR', fallbackMessage = 'Terjadi kesalahan pada server.') {
+  return {
+    success: false,
+    valid: false,
+    code: error?.code || fallbackCode,
+    message: error?.message || fallbackMessage,
+  };
 }
 
 export const votingService = {
   /**
-   * Validate voter token with Server API (falls back to local verification)
+   * ============================================================
+   * VALIDATE TOKEN
+   * ============================================================
+   *
+   * Menggunakan:
+   * public.validate_voter_token(p_token TEXT)
+   *
+   * RPC akan:
+   * - membersihkan token
+   * - mengecek format
+   * - mencari token
+   * - mengecek status token
+   * - mengecek status pemilihan
+   * - mengembalikan informasi pemilihan
    */
   async validateToken(rawToken) {
     const cleanToken = formatTokenInput(rawToken);
 
+    /**
+     * Validasi format di frontend hanya untuk UX.
+     * Keamanan sebenarnya tetap dilakukan oleh RPC.
+     */
     if (!isValidTokenFormat(cleanToken)) {
       return {
         valid: false,
         code: 'INVALID_FORMAT',
-        message: 'Format token tidak valid. Token harus terdiri dari 6 karakter (A-Z, 0-9).',
+        message:
+          'Format token tidak valid. Token harus terdiri dari 6 karakter (A-Z, 0-9).',
       };
     }
 
-    // 1. Try Server API
+    if (!supabase) {
+      return {
+        valid: false,
+        code: 'SUPABASE_NOT_CONFIGURED',
+        message: 'Koneksi ke database belum tersedia.',
+      };
+    }
+
     try {
-      const res = await fetch('/api/vote/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: cleanToken }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data;
-      }
-    } catch (err) {
-      console.warn('Server API validateToken error, falling back to local:', err);
-    }
+      const { data, error } = await supabase.rpc(
+        'validate_voter_token',
+        {
+          p_token: cleanToken,
+        }
+      );
 
-    // 2. Local Fallback verification
-    const election = await settingsService.getElection();
-    if (election?.status && election.status !== 'Berlangsung') {
-      if (election.status === 'Draft' || election.status === 'Belum Dimulai') {
+      if (error) {
+        console.error('validate_voter_token RPC error:', error);
+
         return {
           valid: false,
-          code: 'ELECTION_NOT_STARTED',
-          message: 'Pemilihan belum dimulai. Silakan tunggu jadwal dari panitia.',
+          code: error.code || 'VALIDATION_FAILED',
+          message:
+            error.message ||
+            'Gagal memvalidasi token. Silakan coba lagi.',
         };
       }
-      if (election.status === 'Selesai') {
+
+      /**
+       * RPC mengembalikan JSON.
+       * Supabase biasanya sudah mengubahnya menjadi object.
+       */
+      if (!data) {
         return {
           valid: false,
-          code: 'ELECTION_ENDED',
-          message: 'Pemilihan telah berakhir. Terima kasih atas partisipasi Anda.',
+          code: 'EMPTY_RESPONSE',
+          message: 'Server tidak memberikan respons valid.',
         };
       }
+
+      return {
+        ...data,
+        valid: data.valid === true,
+        token: data.valid === true ? cleanToken : undefined,
+      };
+    } catch (error) {
+      console.error('validateToken error:', error);
+
       return {
         valid: false,
-        code: 'ELECTION_INACTIVE',
-        message: 'Pemilihan sedang tidak aktif.',
+        code: 'VALIDATION_ERROR',
+        message:
+          error?.message ||
+          'Terjadi kesalahan saat memvalidasi token.',
       };
     }
-
-    const tokens = await tokenService.getTokens(election?.id);
-    const found = tokens.find((t) => t.token.toUpperCase() === cleanToken);
-
-    if (!found) {
-      return {
-        valid: false,
-        code: 'NOT_FOUND',
-        message: 'Token tidak ditemukan atau tidak valid.',
-      };
-    }
-
-    if (found.status === 'used' || found.used_at) {
-      return {
-        valid: false,
-        code: 'ALREADY_USED',
-        message: 'Anda sudah menggunakan hak suara dengan token ini.',
-      };
-    }
-
-    if (found.status === 'inactive') {
-      return {
-        valid: false,
-        code: 'INACTIVE_TOKEN',
-        message: 'Token ini berstatus nonaktif. Silakan hubungi panitia OSIS.',
-      };
-    }
-
-    return {
-      valid: true,
-      token: cleanToken,
-      election_id: election?.id,
-      election_title: election?.election_title || 'Pemilihan Ketua dan Wakil Ketua OSIS',
-      election_period: election?.election_period || '2026/2027',
-      school_name: election?.school_name || 'SMP NEGERI 2 KWADUNGAN',
-      school_logo_url: election?.school_logo_url,
-      message: 'Token valid. Silakan pilih kandidat Anda.',
-    };
   },
 
   /**
-   * Cast Vote atomically to Server API
+   * ============================================================
+   * CAST VOTE
+   * ============================================================
+   *
+   * Menggunakan:
+   * public.cast_vote(
+   *   p_token TEXT,
+   *   p_candidate_id UUID
+   * )
+   *
+   * Atomic voting dilakukan di PostgreSQL.
+   *
+   * RPC:
+   * 1. Lock token dengan FOR UPDATE
+   * 2. Cek token
+   * 3. Cek status pemilihan
+   * 4. Cek kandidat
+   * 5. Insert vote
+   * 6. Tandai token sebagai used
+   *
+   * Dengan demikian frontend tidak melakukan:
+   * - insert ke votes
+   * - update voter_tokens
+   * - penyimpanan vote ke localStorage
    */
   async castVote(rawToken, candidateId) {
     const cleanToken = formatTokenInput(rawToken);
@@ -119,7 +184,7 @@ export const votingService = {
     if (!isValidTokenFormat(cleanToken)) {
       return {
         success: false,
-        code: 'INVALID_FORMAT',
+        code: 'INVALID_TOKEN_FORMAT',
         message: 'Format token tidak valid.',
       };
     }
@@ -127,224 +192,395 @@ export const votingService = {
     if (!candidateId) {
       return {
         success: false,
-        code: 'NO_CANDIDATE',
+        code: 'INVALID_CANDIDATE',
         message: 'Silakan tentukan kandidat pilihan Anda.',
       };
     }
 
-    // 1. Submit to Server API
+    if (!supabase) {
+      return {
+        success: false,
+        code: 'SUPABASE_NOT_CONFIGURED',
+        message: 'Koneksi ke database belum tersedia.',
+      };
+    }
+
     try {
-      const res = await fetch('/api/vote/cast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: cleanToken, candidateId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data;
-      }
-      const errData = await res.json().catch(() => ({}));
-      return {
-        success: false,
-        code: errData.code || 'VOTE_FAILED',
-        message: errData.message || 'Gagal menyimpan suara ke server.',
-      };
-    } catch (err) {
-      console.warn('Server API castVote failed, attempting local fallback:', err);
-    }
+      const { data, error } = await supabase.rpc(
+        'cast_vote',
+        {
+          p_token: cleanToken,
+          p_candidate_id: candidateId,
+        }
+      );
 
-    // 2. Local Fallback
-    const election = await settingsService.getElection();
-    const electionId = election?.id;
-    const tokens = await tokenService.getTokens(electionId);
-    const targetToken = tokens.find((t) => t.token.toUpperCase() === cleanToken);
+      if (error) {
+        console.error('cast_vote RPC error:', error);
 
-    if (targetToken) {
-      if (targetToken.status === 'used' || targetToken.used_at) {
         return {
           success: false,
-          code: 'ALREADY_VOTED',
-          message: 'Anda sudah menggunakan hak suara dengan token ini.',
+          code: error.code || 'VOTE_FAILED',
+          message:
+            error.message ||
+            'Gagal menyimpan suara. Silakan coba lagi.',
         };
       }
-      if (targetToken.status === 'inactive') {
+
+      if (!data) {
         return {
           success: false,
-          code: 'TOKEN_INACTIVE',
-          message: 'Token ini berstatus nonaktif oleh panitia.',
+          code: 'EMPTY_RESPONSE',
+          message: 'Server tidak memberikan respons valid.',
         };
       }
-    }
 
-    const candidates = await candidateService.getCandidates(electionId);
-    const candidate = candidates.find((c) => c.id === candidateId || String(c.number) === String(candidateId));
-    if (!candidate || !candidate.is_active) {
+      /**
+       * Jangan menyimpan token atau vote ke localStorage.
+       *
+       * Database RPC adalah sumber kebenaran.
+       */
+      return {
+        ...data,
+        success: data.success === true,
+      };
+    } catch (error) {
+      console.error('castVote error:', error);
+
       return {
         success: false,
-        code: 'CANDIDATE_NOT_AVAILABLE',
-        message: 'Kandidat pilihan tidak tersedia atau sedang nonaktif.',
+        code: 'VOTE_ERROR',
+        message:
+          error?.message ||
+          'Terjadi kesalahan saat menyimpan suara.',
       };
     }
+  },
 
-    if (targetToken) {
-      targetToken.status = 'used';
-      targetToken.used_at = new Date().toISOString();
-      await tokenService.updateTokenStatus(targetToken.id, 'used');
-
-      const newVote = {
-        id: 'v-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+  /**
+   * ============================================================
+   * GET RESULTS
+   * ============================================================
+   *
+   * Menggunakan:
+   * public.get_election_results(p_election_id UUID)
+   *
+   * RPC mengembalikan:
+   * - total_tokens
+   * - used_tokens
+   * - unused_tokens
+   * - total_votes
+   * - turnout_percentage
+   * - candidates
+   */
+  async getResults(electionId) {
+    if (!electionId) {
+      return {
+        success: false,
+        code: 'NO_ELECTION',
+        message: 'ID pemilihan tidak ditemukan.',
         election_id: electionId,
-        candidate_id: candidate.id,
-        candidate_number: candidate.number,
-        voted_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
+        total_tokens: 0,
+        used_tokens: 0,
+        unused_tokens: 0,
+        total_votes: 0,
+        turnout_percentage: 0,
+        candidates: [],
       };
-      addLocalVote(newVote);
+    }
+
+    if (!supabase) {
+      return {
+        success: false,
+        code: 'SUPABASE_NOT_CONFIGURED',
+        message: 'Koneksi ke database belum tersedia.',
+        election_id: electionId,
+        total_tokens: 0,
+        used_tokens: 0,
+        unused_tokens: 0,
+        total_votes: 0,
+        turnout_percentage: 0,
+        candidates: [],
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc(
+        'get_election_results',
+        {
+          p_election_id: electionId,
+        }
+      );
+
+      if (error) {
+        console.error('get_election_results RPC error:', error);
+
+        return {
+          success: false,
+          code: error.code || 'RESULTS_FAILED',
+          message:
+            error.message ||
+            'Gagal mengambil hasil pemilihan.',
+          election_id: electionId,
+          total_tokens: 0,
+          used_tokens: 0,
+          unused_tokens: 0,
+          total_votes: 0,
+          turnout_percentage: 0,
+          candidates: [],
+        };
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          code: 'EMPTY_RESPONSE',
+          message: 'Hasil pemilihan tidak tersedia.',
+          election_id: electionId,
+          total_tokens: 0,
+          used_tokens: 0,
+          unused_tokens: 0,
+          total_votes: 0,
+          turnout_percentage: 0,
+          candidates: [],
+        };
+      }
+
+      /**
+       * Normalisasi hasil supaya kompatibel
+       * dengan halaman Results yang mungkin menggunakan
+       * vote_count atau votes.
+       */
+      const candidates = Array.isArray(data.candidates)
+        ? data.candidates.map((candidate) => ({
+            ...candidate,
+            votes:
+              candidate.votes ??
+              candidate.vote_count ??
+              0,
+            vote_count:
+              candidate.vote_count ??
+              candidate.votes ??
+              0,
+          }))
+        : [];
 
       return {
         success: true,
-        code: 'VOTE_RECORDED',
-        message: 'Suara Anda berhasil dicatat, terima kasih telah berpartisipasi.',
-        candidate_number: candidate.number,
+        election_id: data.election_id || electionId,
+        total_tokens: Number(data.total_tokens || 0),
+        used_tokens: Number(data.used_tokens || 0),
+        unused_tokens: Number(data.unused_tokens || 0),
+        total_votes: Number(data.total_votes || 0),
+        turnout_percentage: Number(
+          data.turnout_percentage || 0
+        ),
+        candidates,
+      };
+    } catch (error) {
+      console.error('getResults error:', error);
+
+      return {
+        success: false,
+        code: 'RESULTS_ERROR',
+        message:
+          error?.message ||
+          'Terjadi kesalahan saat mengambil hasil pemilihan.',
+        election_id: electionId,
+        total_tokens: 0,
+        used_tokens: 0,
+        unused_tokens: 0,
+        total_votes: 0,
+        turnout_percentage: 0,
+        candidates: [],
+      };
+    }
+  },
+
+  /**
+   * ============================================================
+   * RESET VOTES
+   * ============================================================
+   *
+   * Fungsi admin untuk mengosongkan hasil voting.
+   *
+   * Catatan:
+   * RPC voting_function.sql yang kamu kirim BELUM memiliki
+   * RPC khusus reset voting.
+   *
+   * Karena itu fungsi ini menggunakan operasi Supabase langsung.
+   *
+   * RLS database harus mengizinkan operasi admin yang sesuai.
+   */
+  async resetVotes(electionId, resetTokens = false) {
+    const errors = [];
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: 'Koneksi ke database belum tersedia.',
+        errors: ['Supabase tidak tersedia.'],
       };
     }
 
-    return {
-      success: false,
-      code: 'TOKEN_NOT_FOUND',
-      message: 'Token tidak valid atau tidak terdaftar dalam sistem.',
-    };
-  },
-
-  /**
-   * Get aggregated election results from Server API
-   */
-  async getResults(electionId) {
+    /**
+     * ----------------------------------------------------------
+     * 1. Hapus votes
+     * ----------------------------------------------------------
+     */
     try {
-      const res = await fetch('/api/results');
-      if (res.ok) {
-        const data = await res.json();
-        return data;
+      let voteQuery = supabase
+        .from('votes')
+        .delete();
+
+      if (electionId) {
+        voteQuery = voteQuery.eq(
+          'election_id',
+          electionId
+        );
+      } else {
+        /**
+         * Supabase membutuhkan filter pada delete.
+         * UUID dummy ini tidak seharusnya ada.
+         */
+        voteQuery = voteQuery.neq(
+          'id',
+          '00000000-0000-0000-0000-000000000000'
+        );
       }
-    } catch (err) {
-      console.warn('Error fetching /api/results, falling back to local calculation:', err);
-    }
 
-    // Fallback aggregation
-    const tokens = await tokenService.getTokens(electionId);
-    const candidates = await candidateService.getCandidates(electionId);
-    const allVotes = getLocalVotes().filter((v) => !electionId || v.election_id === electionId);
+      const { error: voteError } = await voteQuery;
 
-    const totalTokens = tokens.length;
-    const usedTokens = tokens.filter((t) => t.status === 'used' || t.used_at).length;
-    const unusedTokens = tokens.filter((t) => t.status === 'active' && !t.used_at).length;
-    const totalVotes = Math.max(allVotes.length, usedTokens);
+      if (voteError) {
+        console.error(
+          'Reset votes error:',
+          voteError
+        );
 
-    const candidateResults = candidates
-      .filter((c) => c.is_active)
-      .map((c) => {
-        const count = allVotes.filter(
-          (v) => v.candidate_id === c.id || String(v.candidate_number) === String(c.number)
-        ).length;
-        const percentage = totalVotes > 0 ? parseFloat(((count / totalVotes) * 100).toFixed(1)) : 0;
-        return {
-          id: c.id,
-          number: c.number,
-          chairman_name: c.chairman_name,
-          vice_chairman_name: c.vice_chairman_name,
-          photo_url: c.photo_url,
-          slogan: c.slogan,
-          votes: count,
-          vote_count: count,
-          percentage,
-        };
-      })
-      .sort((a, b) => a.number - b.number);
-
-    const turnout = totalTokens > 0 ? parseFloat(((usedTokens / totalTokens) * 100).toFixed(1)) : 0;
-
-    return {
-      election_id: electionId,
-      total_tokens: totalTokens,
-      used_tokens: usedTokens,
-      unused_tokens: unusedTokens,
-      total_votes: totalVotes,
-      turnout_percentage: turnout,
-      candidates: candidateResults,
-    };
-  },
-
-  /**
-   * Reset seluruh suara (kosongkan votes di Supabase, Server API, dan Local Storage)
-   */
-  async resetVotes(electionId, resetTokens = false) {
-    let errors = [];
-
-    // 1. Reset di Supabase (jika terhubung)
-    try {
-      if (supabase) {
-        // Hapus seluruh baris dari tabel votes
-        let query = supabase.from('votes').delete();
-        if (electionId) {
-          query = query.or(`election_id.eq.${electionId},election_id.is.null`);
-        } else {
-          query = query.neq('id', '00000000-0000-0000-0000-000000000000');
-        }
-        const { error: voteErr } = await query;
-        if (voteErr) {
-          console.warn('Supabase reset votes error:', voteErr);
-          // Fallback tanpa filter jika error RLS/format
-          await supabase.from('votes').delete().neq('id', 'non-existent-id');
-        }
-
-        // Jika reset status token juga dipilih
-        if (resetTokens) {
-          let tokenQuery = supabase
-            .from('voter_tokens')
-            .update({ status: 'active', used_at: null })
-            .eq('status', 'used');
-          if (electionId) {
-            tokenQuery = tokenQuery.eq('election_id', electionId);
-          }
-          await tokenQuery;
-        }
+        errors.push(
+          'Votes: ' +
+            (voteError.message || 'Gagal menghapus suara.')
+        );
       }
-    } catch (err) {
-      console.warn('Supabase reset error:', err);
-      errors.push('Supabase: ' + (err.message || 'Gagal'));
+    } catch (error) {
+      console.error('Reset votes exception:', error);
+
+      errors.push(
+        'Votes: ' +
+          (error?.message || 'Gagal menghapus suara.')
+      );
     }
 
-    // 2. Reset di Server API (/api/votes/reset)
-    try {
-      await fetch('/api/votes/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ electionId, resetTokens }),
-      });
-    } catch (err) {
-      console.warn('Server reset votes error:', err);
-    }
-
-    // 3. Reset Local Storage
-    localStorage.removeItem(LOCAL_STORAGE_VOTES_KEY);
+    /**
+     * ----------------------------------------------------------
+     * 2. Reset token jika diminta
+     * ----------------------------------------------------------
+     */
     if (resetTokens) {
-      const localTokens = tokenService.getLocalTokens ? tokenService.getLocalTokens() : [];
-      if (Array.isArray(localTokens)) {
-        const updated = localTokens.map((t) => ({
-          ...t,
-          status: t.status === 'used' ? 'active' : t.status,
-          used_at: null,
-        }));
-        if (tokenService.setLocalTokens) {
-          tokenService.setLocalTokens(updated);
+      try {
+        let tokenQuery = supabase
+          .from('voter_tokens')
+          .update({
+            status: 'active',
+            used_at: null,
+          })
+          .eq('status', 'used');
+
+        if (electionId) {
+          tokenQuery = tokenQuery.eq(
+            'election_id',
+            electionId
+          );
         }
+
+        const { error: tokenError } =
+          await tokenQuery;
+
+        if (tokenError) {
+          console.error(
+            'Reset token error:',
+            tokenError
+          );
+
+          errors.push(
+            'Tokens: ' +
+              (tokenError.message ||
+                'Gagal mereset token.')
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Reset token exception:',
+          error
+        );
+
+        errors.push(
+          'Tokens: ' +
+            (error?.message ||
+              'Gagal mereset token.')
+        );
       }
     }
 
+    /**
+     * ----------------------------------------------------------
+     * 3. Bersihkan data lokal lama
+     * ----------------------------------------------------------
+     *
+     * Ini bukan sumber data voting.
+     * Hanya membersihkan data dari versi aplikasi lama.
+     */
+    clearLocalVotes();
+
     return {
-      success: true,
-      message: 'Perolehan suara berhasil direset menjadi 0.',
-      errors: errors.length > 0 ? errors : undefined,
+      success: errors.length === 0,
+      message:
+        errors.length === 0
+          ? 'Perolehan suara berhasil direset menjadi 0.'
+          : 'Reset selesai dengan beberapa kendala.',
+      errors:
+        errors.length > 0
+          ? errors
+          : undefined,
     };
   },
+
+  /**
+   * ============================================================
+   * COMPATIBILITY HELPERS
+   * ============================================================
+   *
+   * Beberapa komponen lama mungkin masih membutuhkan fungsi
+   * berikut. Kita pertahankan agar tidak menyebabkan error
+   * import jika ada yang menggunakannya.
+   */
+
+  async getElection() {
+    try {
+      if (settingsService?.getElection) {
+        return await settingsService.getElection();
+      }
+
+      return null;
+    } catch (error) {
+      console.error(
+        'votingService.getElection error:',
+        error
+      );
+
+      return null;
+    }
+  },
+
+  /**
+   * Fungsi ini hanya untuk kompatibilitas kode lama.
+   *
+   * JANGAN digunakan sebagai sumber kebenaran apakah
+   * seseorang sudah memilih.
+   */
+  getLocalVotes,
+
+  /**
+   * Hapus data voting lokal lama.
+   */
+  clearLocalVotes,
 };
