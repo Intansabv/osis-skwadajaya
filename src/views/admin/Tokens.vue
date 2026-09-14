@@ -3,238 +3,238 @@
     <!-- Konten Dashboard Manajemen Token (Hanya tampil di layar monitor, tidak ikut tercetak) -->
     <div class="token-management-dashboard no-print">
       <!-- Header & Actions -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-      <div>
-        <h3 class="fw-extrabold text-dark mb-1">Manajemen Token Voting</h3>
-        <p class="text-muted mb-0">
-          Generate dan kelola token autentikasi 6-karakter unik beserta QR Code pemilih
-        </p>
-      </div>
-
-      <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-outline-primary rounded-pill px-3" @click="showBatchModal = true">
-          <i class="bi bi-stack me-1"></i> Generate Massal
-        </button>
-        <button class="btn btn-primary rounded-pill px-3 shadow-sm" @click="showSingleModal = true">
-          <i class="bi bi-plus-lg me-1"></i> Buat Token Baru
-        </button>
-        <button class="btn btn-outline-dark rounded-pill px-3" @click="openPrintCardsModal">
-          <i class="bi bi-printer me-1"></i> Cetak Kartu Token QR
-        </button>
-        <button
-          class="btn btn-outline-danger rounded-pill px-3"
-          :disabled="tokens.length === 0"
-          @click="showClearModal = true"
-        >
-          <i class="bi bi-trash3 me-1"></i> Hapus / Bersihkan Token
-        </button>
-      </div>
-    </div>
-
-    <!-- Alert Message -->
-    <AlertMessage
-      v-if="alertMessage"
-      :message="alertMessage"
-      :type="alertType"
-      dismissible
-      @close="alertMessage = null"
-    />
-
-    <!-- Filter & Stat Bar -->
-    <div class="row g-3 mb-4">
-      <div class="col-sm-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-          <span class="text-muted small fw-bold">TOTAL TOKEN</span>
-          <h3 class="fw-bold text-dark mb-0">{{ tokens.length }}</h3>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-          <span class="text-muted small fw-bold text-success">BELUM DIGUNAKAN</span>
-          <h3 class="fw-bold text-success mb-0">{{ unusedCount }}</h3>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-          <span class="text-muted small fw-bold text-primary">SUDAH DIGUNAKAN</span>
-          <h3 class="fw-bold text-primary mb-0">{{ usedCount }}</h3>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-          <span class="text-muted small fw-bold text-secondary">NONAKTIF</span>
-          <h3 class="fw-bold text-secondary mb-0">{{ inactiveCount }}</h3>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tokens Table Card -->
-    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
-      <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-          <input
-            v-model="search"
-            type="text"
-            class="form-control form-control-sm rounded-pill px-3"
-            placeholder="Cari token..."
-            style="max-width: 220px;"
-          />
-          <select v-model="filterStatus" class="form-select form-select-sm rounded-pill" style="width: 160px;">
-            <option value="all">Semua Status</option>
-            <option value="active">Belum Digunakan</option>
-            <option value="used">Sudah Digunakan</option>
-            <option value="inactive">Nonaktif</option>
-          </select>
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+          <h3 class="fw-extrabold text-dark mb-1">Manajemen Token Voting</h3>
+          <p class="text-muted mb-0">
+            Generate dan kelola token autentikasi 6-karakter unik beserta QR Code pemilih
+          </p>
         </div>
 
-        <span class="text-muted small">
-          Menampilkan {{ filteredTokens.length }} token
-        </span>
-      </div>
-
-      <!-- Selection Action Bar -->
-      <div
-        v-if="selectedTokenIds.length > 0"
-        class="bg-warning bg-opacity-10 border-top border-bottom border-warning border-opacity-25 px-3 px-md-4 py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"
-      >
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold">
-            {{ selectedTokenIds.length }} Token Terpilih
-          </span>
-          <span class="small text-muted">dari total {{ filteredTokens.length }} token yang ditampilkan</span>
-        </div>
         <div class="d-flex gap-2 flex-wrap">
-          <button
-            type="button"
-            class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold"
-            @click="openPrintSelectedCards"
-          >
-            <i class="bi bi-printer me-1"></i> Cetak Terpilih ({{ selectedTokenIds.length }})
+          <button class="btn btn-outline-primary rounded-pill px-3" @click="showBatchModal = true">
+            <i class="bi bi-stack me-1"></i> Generate Massal
+          </button>
+          <button class="btn btn-primary rounded-pill px-3 shadow-sm" @click="showSingleModal = true">
+            <i class="bi bi-plus-lg me-1"></i> Buat Token Baru
+          </button>
+          <button class="btn btn-outline-dark rounded-pill px-3" @click="openPrintCardsModal">
+            <i class="bi bi-printer me-1"></i> Cetak Kartu Token QR
           </button>
           <button
-            type="button"
-            class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold"
-            @click="promptDeleteSelected"
+            class="btn btn-outline-danger rounded-pill px-3"
+            :disabled="tokens.length === 0"
+            @click="showClearModal = true"
           >
-            <i class="bi bi-trash3-fill me-1"></i> Hapus Terpilih ({{ selectedTokenIds.length }})
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-            @click="selectedTokenIds = []"
-          >
-            Batal
+            <i class="bi bi-trash3 me-1"></i> Hapus / Bersihkan Token
           </button>
         </div>
       </div>
 
-      <LoadingSpinner v-if="loading" text="Memuat token..." />
+      <!-- Alert Message -->
+      <AlertMessage
+        v-if="alertMessage"
+        :message="alertMessage"
+        :type="alertType"
+        dismissible
+        @close="alertMessage = null"
+      />
 
-      <div v-else class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="bg-light table-light small text-uppercase text-muted">
-            <tr>
-              <th class="ps-3" style="width: 42px;">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  :checked="isAllSelected"
-                  :indeterminate.prop="isIndeterminate"
-                  :disabled="filteredTokens.length === 0"
-                  title="Pilih Semua Token Ditampilkan"
-                  @change="toggleSelectAll"
-                />
-              </th>
-              <th style="width: 45px;">No</th>
-              <th>Token (6 Karakter)</th>
-              <th>QR Code</th>
-              <th>Status</th>
-              <th>Waktu Digunakan</th>
-              <th>Dibuat Pada</th>
-              <th class="text-end pe-4">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="filteredTokens.length === 0">
-              <td colspan="8" class="text-center py-5 text-muted">
-                Tidak ada data token yang cocok.
-              </td>
-            </tr>
-
-            <tr
-              v-for="(tok, idx) in filteredTokens"
-              :key="tok.id"
-              :class="{ 'table-active': selectedTokenIds.includes(tok.id) }"
-            >
-              <td class="ps-3">
-                <input
-                  v-model="selectedTokenIds"
-                  type="checkbox"
-                  class="form-check-input"
-                  :value="tok.id"
-                />
-              </td>
-              <td class="text-muted small">{{ idx + 1 }}</td>
-              <td>
-                <span class="font-monospace fw-bold fs-6 text-primary bg-primary bg-opacity-10 px-2 py-1 rounded">
-                  {{ tok.token }}
-                </span>
-                <span v-if="tok.voter_code" class="badge bg-light text-muted border ms-2 small">
-                  {{ tok.voter_code }}
-                </span>
-              </td>
-              <td>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-light border rounded-pill px-2 py-1"
-                  @click="previewQR(tok.token)"
-                >
-                  <i class="bi bi-qr-code me-1"></i> Lihat QR
-                </button>
-              </td>
-              <td>
-                <span v-if="tok.status === 'used' || tok.used_at" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill">
-                  Sudah Digunakan
-                </span>
-                <span v-else-if="tok.status === 'active'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill">
-                  Belum Digunakan
-                </span>
-                <span v-else class="badge bg-secondary px-2 py-1 rounded-pill">
-                  Nonaktif
-                </span>
-              </td>
-              <td class="text-muted small">
-                {{ tok.used_at ? formatDateTime(tok.used_at) : '-' }}
-              </td>
-              <td class="text-muted small">
-                {{ formatDateTime(tok.created_at) }}
-              </td>
-              <td class="text-end pe-4">
-                <div class="btn-group btn-group-sm">
-                  <button
-                    v-if="tok.status !== 'used'"
-                    type="button"
-                    :class="['btn', tok.status === 'active' ? 'btn-outline-warning' : 'btn-outline-success']"
-                    :title="tok.status === 'active' ? 'Nonaktifkan Token' : 'Aktifkan Token'"
-                    @click="toggleStatus(tok)"
-                  >
-                    <i :class="['bi', tok.status === 'active' ? 'bi-pause-circle' : 'bi-play-circle']"></i>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger"
-                    title="Hapus Token Ini (Satu-per-Satu)"
-                    @click="confirmDelete(tok)"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Filter & Stat Bar -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-bold">TOTAL TOKEN</span>
+            <h3 class="fw-bold text-dark mb-0">{{ tokens.length }}</h3>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-bold text-success">BELUM DIGUNAKAN</span>
+            <h3 class="fw-bold text-success mb-0">{{ unusedCount }}</h3>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-bold text-primary">SUDAH DIGUNAKAN</span>
+            <h3 class="fw-bold text-primary mb-0">{{ usedCount }}</h3>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-bold text-secondary">NONAKTIF</span>
+            <h3 class="fw-bold text-secondary mb-0">{{ inactiveCount }}</h3>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- Tokens Table Card -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+        <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <input
+              v-model="search"
+              type="text"
+              class="form-control form-control-sm rounded-pill px-3"
+              placeholder="Cari token..."
+              style="max-width: 220px;"
+            />
+            <select v-model="filterStatus" class="form-select form-select-sm rounded-pill" style="width: 160px;">
+              <option value="all">Semua Status</option>
+              <option value="active">Belum Digunakan</option>
+              <option value="used">Sudah Digunakan</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+          </div>
+
+          <span class="text-muted small">
+            Menampilkan {{ filteredTokens.length }} token
+          </span>
+        </div>
+
+        <!-- Selection Action Bar -->
+        <div
+          v-if="selectedTokenIds.length > 0"
+          class="bg-warning bg-opacity-10 border-top border-bottom border-warning border-opacity-25 px-3 px-md-4 py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"
+        >
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold">
+              {{ selectedTokenIds.length }} Token Terpilih
+            </span>
+            <span class="small text-muted">dari total {{ filteredTokens.length }} token yang ditampilkan</span>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold"
+              @click="openPrintSelectedCards"
+            >
+              <i class="bi bi-printer me-1"></i> Cetak Terpilih ({{ selectedTokenIds.length }})
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold"
+              @click="promptDeleteSelected"
+            >
+              <i class="bi bi-trash3-fill me-1"></i> Hapus Terpilih ({{ selectedTokenIds.length }})
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+              @click="selectedTokenIds = []"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+
+        <LoadingSpinner v-if="loading" text="Memuat token..." />
+
+        <div v-else class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-3" style="width: 42px;">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    :checked="isAllSelected"
+                    :indeterminate.prop="isIndeterminate"
+                    :disabled="filteredTokens.length === 0"
+                    title="Pilih Semua Token Ditampilkan"
+                    @change="toggleSelectAll"
+                  />
+                </th>
+                <th style="width: 45px;">No</th>
+                <th>Token (6 Karakter)</th>
+                <th>QR Code</th>
+                <th>Status</th>
+                <th>Waktu Digunakan</th>
+                <th>Dibuat Pada</th>
+                <th class="text-end pe-4">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredTokens.length === 0">
+                <td colspan="8" class="text-center py-5 text-muted">
+                  Tidak ada data token yang cocok.
+                </td>
+              </tr>
+
+              <tr
+                v-for="(tok, idx) in filteredTokens"
+                :key="tok.id"
+                :class="{ 'table-active': selectedTokenIds.includes(tok.id) }"
+              >
+                <td class="ps-3">
+                  <input
+                    v-model="selectedTokenIds"
+                    type="checkbox"
+                    class="form-check-input"
+                    :value="tok.id"
+                  />
+                </td>
+                <td class="text-muted small">{{ idx + 1 }}</td>
+                <td>
+                  <span class="font-monospace fw-bold fs-6 text-primary bg-primary bg-opacity-10 px-2 py-1 rounded">
+                    {{ tok.token }}
+                  </span>
+                  <span v-if="tok.voter_code" class="badge bg-light text-muted border ms-2 small">
+                    {{ tok.voter_code }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border rounded-pill px-2 py-1"
+                    @click="previewQR(tok.token)"
+                  >
+                    <i class="bi bi-qr-code me-1"></i> Lihat QR
+                  </button>
+                </td>
+                <td>
+                  <span v-if="tok.status === 'used' || tok.used_at" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill">
+                    Sudah Digunakan
+                  </span>
+                  <span v-else-if="tok.status === 'active'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill">
+                    Belum Digunakan
+                  </span>
+                  <span v-else class="badge bg-secondary px-2 py-1 rounded-pill">
+                    Nonaktif
+                  </span>
+                </td>
+                <td class="text-muted small">
+                  {{ tok.used_at ? formatDateTime(tok.used_at) : '-' }}
+                </td>
+                <td class="text-muted small">
+                  {{ formatDateTime(tok.created_at) }}
+                </td>
+                <td class="text-end pe-4">
+                  <div class="btn-group btn-group-sm">
+                    <button
+                      v-if="tok.status !== 'used'"
+                      type="button"
+                      :class="['btn', tok.status === 'active' ? 'btn-outline-warning' : 'btn-outline-success']"
+                      :title="tok.status === 'active' ? 'Nonaktifkan Token' : 'Aktifkan Token'"
+                      @click="toggleStatus(tok)"
+                    >
+                      <i :class="['bi', tok.status === 'active' ? 'bi-pause-circle' : 'bi-play-circle']"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger"
+                      title="Hapus Token Ini (Satu-per-Satu)"
+                      @click="confirmDelete(tok)"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Modal: Generate Single Token (no-print) -->
@@ -305,7 +305,7 @@
               <label class="form-label text-muted small fw-semibold">Jumlah Token yang Akan Dibuat:</label>
               <div class="d-flex gap-2 mb-2">
                 <button
-                  v-for="amt in [10, 25, 50, 100]"
+                  v-for="amt in [12, 24, 60, 120]"
                   :key="amt"
                   type="button"
                   :class="['btn', 'btn-sm', batchCount === amt ? 'btn-primary' : 'btn-outline-secondary', 'rounded-pill', 'px-3']"
@@ -362,7 +362,7 @@
       </div>
     </div>
 
-    <!-- Modal: Printable Token Cards Sheet (A4 Portrait - 2x3 Grid = 6 Kartu per Lembar) -->
+    <!-- Modal: Printable Token Cards Sheet (A4 Portrait - 3x4 Grid = 12 Kartu per Lembar) -->
     <div v-if="showPrintCardsModal" class="modal fade show d-block print-cards-modal-wrapper" tabindex="-1" style="background: rgba(0,0,0,0.65);" @click.self="showPrintCardsModal = false">
       <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
         <div class="modal-content rounded-4 border-0 shadow">
@@ -373,7 +373,7 @@
                 <i class="bi bi-printer text-primary"></i> Cetak Kartu QR Token Siswa
               </h5>
               <p class="text-muted small mb-0">
-                Format Standar: <strong>Kertas A4 Portrait (Tegak)</strong> — <strong>2 Kolom x 3 Baris (Pas 6 Kartu per Lembar)</strong>
+                Format Standar: <strong>Kertas A4 Portrait (Tegak)</strong> — <strong>3 Kolom x 4 Baris (Pas 12 Kartu per Lembar)</strong>
               </p>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -438,11 +438,11 @@
                     v-model="printMaxLimit"
                     @change="reloadPrintCards"
                   >
-                    <option :value="30">30 Token (5 Lembar A4)</option>
-                    <option :value="60">60 Token (10 Lembar A4)</option>
-                    <option :value="120">120 Token (20 Lembar A4)</option>
-                    <option :value="300">300 Token (50 Lembar A4)</option>
-                    <option :value="600">600 Token (100 Lembar A4)</option>
+                    <option :value="36">36 Token (3 Lembar A4)</option>
+                    <option :value="60">60 Token (5 Lembar A4)</option>
+                    <option :value="120">120 Token (10 Lembar A4)</option>
+                    <option :value="240">240 Token (20 Lembar A4)</option>
+                    <option :value="600">600 Token (50 Lembar A4)</option>
                     <option :value="99999">Semua Token (Tanpa Batas)</option>
                   </select>
                 </div>
@@ -460,7 +460,7 @@
               <div class="alert alert-info border-0 rounded-3 p-2 px-3 mt-3 mb-0 small d-flex align-items-center gap-2">
                 <i class="bi bi-info-circle-fill text-info fs-5 flex-shrink-0"></i>
                 <div class="text-secondary">
-                  <strong>Tips Cetak Printer:</strong> Format sudah otomatis presisi <strong>A4 Portrait (2 Kolom x 3 Baris = Tepat 6 Kartu per Lembar)</strong>. Pada jendela print browser, disarankan hilangkan centang <em>"Headers and footers"</em> agar tidak ada tulisan URL/tanggal di pinggir kertas.
+                  <strong>Tips Cetak Printer:</strong> Format sudah otomatis presisi <strong>A4 Portrait (3 Kolom x 4 Baris = Tepat 12 Kartu per Lembar)</strong>. Pada jendela print browser, disarankan hilangkan centang <em>"Headers and footers"</em> agar tidak ada tulisan URL/tanggal di pinggir kertas.
                 </div>
               </div>
             </div>
@@ -491,12 +491,12 @@
                     <i class="bi bi-file-earmark-text me-1"></i> Lembar A4 ke-{{ pageIdx + 1 }} dari {{ printPages.length }}
                   </span>
                   <span class="fw-semibold text-secondary">
-                    Kartu ke-{{ pageIdx * 6 + 1 }} s/d {{ Math.min((pageIdx + 1) * 6, printCardsList.length) }}
+                    Kartu ke-{{ pageIdx * 12 + 1 }} s/d {{ Math.min((pageIdx + 1) * 12, printCardsList.length) }}
                   </span>
                 </div>
 
-                <!-- 2 Menyamping x 3 Kebawah = 6 Kartu per Halaman -->
-                <div class="a4-grid-2x3">
+                <!-- 3 Menyamping x 4 Kebawah = 12 Kartu per Halaman -->
+                <div class="a4-grid-3x4">
                   <div
                     v-for="card in pageCards"
                     :key="card.id"
@@ -504,9 +504,9 @@
                   >
                     <!-- Header Kartu -->
                     <div class="card-header-section">
-                      <span class="badge-school">E-OSIS SMPN 2 KWADUNGAN</span>
+                      <span class="badge-school">E-OSIS {{ electionStore.election?.school_name || 'SMPN 2 KWADUNGAN' }}</span>
                       <h6 class="card-title-main">KARTU PEMILIHAN OSIS</h6>
-                      <span class="card-subtitle-period">Tahun Ajaran / Periode 2026/2027</span>
+                      <span class="card-subtitle-period">Tahun Ajaran / Periode {{ electionStore.election?.election_period || '2026/2027' }}</span>
                     </div>
 
                     <!-- Area QR Code -->
@@ -629,7 +629,7 @@
       </div>
     </div>
 
-    <!-- Confirm Modal (digunakan untuk Hapus 1-per-1, Hapus Terpilih, Hapus Terpakai, & Hapus Seluruh) -->
+    <!-- Confirm Modal -->
     <div class="no-print">
       <ConfirmModal
         :show="showConfirmModal"
@@ -674,7 +674,7 @@ const manualToken = ref('');
 const manualVoterCode = ref('');
 
 const showBatchModal = ref(false);
-const batchCount = ref(25);
+const batchCount = ref(24);
 
 const previewQRData = ref(null);
 const showPrintCardsModal = ref(false);
@@ -683,11 +683,12 @@ const printSourceFilter = ref('active'); // 'active' | 'selected' | 'all'
 const printMaxLimit = ref(60);
 const isGeneratingPrintCards = ref(false);
 
+// Perubahan 1: Mengelompokkan per 12 kartu (3x4) per lembar
 const printPages = computed(() => {
   const pages = [];
   const list = printCardsList.value;
-  for (let i = 0; i < list.length; i += 6) {
-    pages.push(list.slice(i, i + 6));
+  for (let i = 0; i < list.length; i += 12) {
+    pages.push(list.slice(i, i + 12));
   }
   return pages;
 });
@@ -822,9 +823,7 @@ async function reloadPrintCards() {
     } else if (printSourceFilter.value === 'all') {
       source = tokens.value;
     } else {
-      // Default: active tokens that are not yet used
       source = tokens.value.filter((t) => t.status === 'active' && !t.used_at);
-      // Fallback if no unused tokens found
       if (source.length === 0 && tokens.value.length > 0) {
         source = tokens.value;
       }
@@ -886,7 +885,6 @@ async function toggleStatus(tokenItem) {
   }
 }
 
-// 1. HAPUS SATU-PER-SATU
 function confirmDelete(tok) {
   confirmTitle.value = 'Hapus Token Pemilih';
   confirmMessage.value = `Apakah Anda yakin ingin menghapus token "${tok.token}"? Token ini tidak akan dapat digunakan lagi untuk memilih.`;
@@ -902,7 +900,6 @@ function confirmDelete(tok) {
   showConfirmModal.value = true;
 }
 
-// 2. HAPUS TOKEN YANG DIPILIH (CEKLIS)
 function promptDeleteSelected() {
   const count = selectedTokenIds.value.length;
   if (count === 0) return;
@@ -922,7 +919,6 @@ function promptDeleteSelected() {
   showConfirmModal.value = true;
 }
 
-// 3. HAPUS HANYA TOKEN YANG SUDAH DIGUNAKAN
 function promptDeleteUsed() {
   const count = usedCount.value;
   if (count === 0) return;
@@ -941,7 +937,6 @@ function promptDeleteUsed() {
   showConfirmModal.value = true;
 }
 
-// 4. HAPUS SELURUH TOKEN (RESET TOTAL)
 function promptDeleteAll() {
   const count = tokens.value.length;
   if (count === 0) return;
@@ -960,7 +955,6 @@ function promptDeleteAll() {
   showConfirmModal.value = true;
 }
 
-// 5. HAPUS TOKEN NONAKTIF
 function promptDeleteInactive() {
   const inactiveTokens = tokens.value.filter((t) => t.status === 'inactive');
   const count = inactiveTokens.length;
@@ -982,7 +976,6 @@ function promptDeleteInactive() {
   showConfirmModal.value = true;
 }
 
-// Eksekutor konfirmasi umum
 async function executeConfirmAction() {
   if (!confirmAction.value) return;
   isProcessingDelete.value = true;
@@ -1020,7 +1013,7 @@ onMounted(() => {
 }
 
 .a4-print-sheet {
-  max-width: 720px;
+  max-width: 860px;
   margin: 0 auto 24px auto;
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -1030,57 +1023,62 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+.a4-grid-3x4,
 .a4-grid-2x3 {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   width: 100%;
 }
 
 .token-card-print {
   border: 1.5px dashed #64748b;
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 6px;
+  padding: 8px 6px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   text-align: center;
-  min-height: 240px;
+  min-height: 180px;
   box-sizing: border-box;
 }
 
 .card-header-section {
   width: 100%;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+  padding-bottom: 3px;
+  margin-bottom: 3px;
 }
 
 .badge-school {
   background-color: #0f172a;
   color: #ffffff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 1.5px 6px;
+  border-radius: 3px;
   display: inline-block;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-title-main {
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
   color: #0f172a;
-  margin-top: 4px;
+  margin-top: 2px;
   margin-bottom: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .card-subtitle-period {
-  font-size: 9.5px;
+  font-size: 8px;
   color: #64748b;
   font-weight: 500;
   display: block;
@@ -1090,12 +1088,12 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 6px 0;
+  margin: 4px 0;
 }
 
 .qr-print-image {
-  width: 110px;
-  height: 110px;
+  width: 70px;
+  height: 70px;
   image-rendering: -webkit-optimize-contrast;
   display: block;
 }
@@ -1103,43 +1101,43 @@ onMounted(() => {
 .card-token-section {
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 4px 8px;
+  border-radius: 4px;
+  padding: 2px 4px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .token-section-label {
-  font-size: 8.5px;
+  font-size: 7.5px;
   color: #64748b;
   font-weight: 700;
   display: block;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .token-section-code {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 900;
   color: #0284c7;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   font-family: monospace;
   display: block;
 }
 
 .card-footer-section {
-  font-size: 8px;
+  font-size: 7px;
   color: #64748b;
-  margin-top: 6px;
-  line-height: 1.2;
+  margin-top: 3px;
+  line-height: 1.15;
 }
 </style>
 
 <!-- Global Unscoped Print Styles -->
 <style>
-/* Print Specific Rules: A4 Portrait, 2 Columns x 3 Rows = Tepat 6 Cards Per Page */
+/* Print Specific Rules: A4 Portrait, 3 Columns x 4 Rows = Tepat 12 Cards Per Page */
 @page {
   size: A4 portrait;
-  margin: 6mm 6mm 6mm 6mm;
+  margin: 4.5mm 4.5mm 4.5mm 4.5mm;
 }
 
 @media print {
@@ -1173,7 +1171,6 @@ onMounted(() => {
     background: #ffffff !important;
   }
 
-  /* Reset body dan html agar tidak ada scrolling/overflow */
   html,
   body {
     background: #ffffff !important;
@@ -1184,7 +1181,6 @@ onMounted(() => {
     overflow: visible !important;
   }
 
-  /* Reset Bootstrap Modal agar rata dan tidak terpotong */
   .modal {
     position: static !important;
     display: block !important;
@@ -1224,13 +1220,13 @@ onMounted(() => {
     padding: 0 !important;
   }
 
-  /* Tiap lembar A4: Ukuran tinggi dibatasi 242mm agar muat pas 6 kartu meski browser menggunakan margin Default dan header/footer */
+  /* Tiap lembar A4: Ukuran tinggi 268mm pas untuk 4 baris kartu tanpa overflow ke halaman berikutnya */
   .a4-print-sheet {
     width: 100% !important;
-    max-width: 194mm !important;
-    height: 242mm !important;
-    max-height: 242mm !important;
-    min-height: 242mm !important;
+    max-width: 201mm !important;
+    height: 268mm !important;
+    max-height: 268mm !important;
+    min-height: 268mm !important;
     margin: 0 auto !important;
     padding: 0 !important;
     box-sizing: border-box !important;
@@ -1252,26 +1248,27 @@ onMounted(() => {
     break-after: auto !important;
   }
 
-  /* Grid 2 Menyamping x 3 Kebawah */
+  /* Grid 3 Menyamping x 4 Kebawah = 12 Kartu per Lembar */
+  .a4-grid-3x4,
   .a4-grid-2x3 {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    grid-template-rows: repeat(3, 77mm) !important;
-    gap: 3.5mm !important;
-    height: 238mm !important;
-    max-height: 238mm !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(4, 64mm) !important;
+    gap: 2.5mm !important;
+    height: 264mm !important;
+    max-height: 264mm !important;
     width: 100% !important;
     box-sizing: border-box !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  /* Kartu Token: Ukuran fix 77mm, pas 3 baris di kertas A4 */
+  /* Kartu Token: Ukuran pas 64mm tinggi x ~65mm lebar */
   .token-card-print {
-    border: 1.5px dashed #0f172a !important;
-    border-radius: 6px !important;
+    border: 1.2px dashed #0f172a !important;
+    border-radius: 5px !important;
     background: #ffffff !important;
-    padding: 3mm 4mm !important;
+    padding: 2mm 2.5mm !important;
     box-sizing: border-box !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -1280,60 +1277,64 @@ onMounted(() => {
     justify-content: space-between !important;
     align-items: center !important;
     text-align: center !important;
-    height: 77mm !important;
-    max-height: 77mm !important;
-    min-height: 77mm !important;
+    height: 64mm !important;
+    max-height: 64mm !important;
+    min-height: 64mm !important;
     overflow: hidden !important;
   }
 
   .card-header-section {
     width: 100% !important;
     border-bottom: 1px solid #e2e8f0 !important;
-    padding-bottom: 2px !important;
-    margin-bottom: 2px !important;
+    padding-bottom: 1mm !important;
+    margin-bottom: 1mm !important;
   }
 
   .badge-school {
     background-color: #0f172a !important;
     color: #ffffff !important;
-    font-size: 8px !important;
-    padding: 1px 6px !important;
+    font-size: 7px !important;
+    padding: 0.8px 4px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.5px !important;
-    border-radius: 3px !important;
+    letter-spacing: 0.3px !important;
+    border-radius: 2.5px !important;
     display: inline-block !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .card-title-main {
-    font-size: 10px !important;
+    font-size: 8.5px !important;
     font-weight: 800 !important;
     color: #0f172a !important;
-    margin-top: 2px !important;
+    margin-top: 1px !important;
     margin-bottom: 0 !important;
-    letter-spacing: 0.3px !important;
-    line-height: 1.15 !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1.1 !important;
   }
 
   .card-subtitle-period {
-    font-size: 8px !important;
+    font-size: 7px !important;
     color: #64748b !important;
     font-weight: 500 !important;
     display: block !important;
-    line-height: 1.15 !important;
+    line-height: 1.1 !important;
   }
 
   .card-qr-section {
-    margin: 2px 0 !important;
+    margin: 1mm 0 !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
   }
 
   .qr-print-image {
-    width: 76px !important;
-    height: 76px !important;
+    width: 55px !important;
+    height: 55px !important;
     image-rendering: -webkit-optimize-contrast !important;
     display: block !important;
   }
@@ -1341,8 +1342,8 @@ onMounted(() => {
   .card-token-section {
     background-color: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
-    border-radius: 4px !important;
-    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    padding: 1mm 2mm !important;
     width: 100% !important;
     box-sizing: border-box !important;
     -webkit-print-color-adjust: exact !important;
@@ -1350,18 +1351,18 @@ onMounted(() => {
   }
 
   .token-section-label {
-    font-size: 7.5px !important;
+    font-size: 6.5px !important;
     font-weight: 700 !important;
     color: #64748b !important;
-    letter-spacing: 0.4px !important;
+    letter-spacing: 0.3px !important;
     line-height: 1 !important;
     display: block !important;
   }
 
   .token-section-code {
-    font-size: 16px !important;
+    font-size: 13.5px !important;
     font-weight: 900 !important;
-    letter-spacing: 2.5px !important;
+    letter-spacing: 2px !important;
     color: #0284c7 !important;
     line-height: 1.1 !important;
     font-family: monospace !important;
@@ -1371,9 +1372,9 @@ onMounted(() => {
   }
 
   .card-footer-section {
-    font-size: 7px !important;
+    font-size: 6px !important;
     color: #64748b !important;
-    margin-top: 2px !important;
+    margin-top: 1mm !important;
     line-height: 1.1 !important;
   }
 }

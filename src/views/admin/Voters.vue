@@ -3,7 +3,7 @@
     <!-- Header & Action Row -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
       <div>
-        <h3 class="fw-extrabold text-dark mb-1">Data Siswa / Pemilih</h3>
+        <h3 class="fw-extrabold text-dark mb-1">Data Pemilih</h3>
         <p class="text-muted mb-0">
           Kelola data administratif pemilih dan pantau status kehadiran pemilih secara anonim.
         </p>
@@ -11,7 +11,7 @@
 
       <div class="d-flex gap-2">
         <button class="btn btn-outline-secondary rounded-pill px-3" @click="printVotersList">
-          <i class="bi bi-printer me-1"></i> Cetak Daftar Hadir
+          <i class="bi bi-printer me-1"></i> Cetak Laporan Pemilih
         </button>
         <router-link to="/admin/tokens" class="btn btn-primary rounded-pill px-3 shadow-sm">
           <i class="bi bi-plus-circle me-1"></i> Kelola Token Voting
