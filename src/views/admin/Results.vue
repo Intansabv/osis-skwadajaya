@@ -401,7 +401,7 @@
         <!-- 1. TANDA TANGAN KETUA PANITIA DI KANAN BAWAH AKHIR BERITA ACARA -->
         <div class="d-flex justify-content-end mb-4">
           <div class="signature-box-chairman text-center" style="min-width: 270px;">
-            <p class="mb-1 text-secondary small">Kwadungan, {{ currentDateFormatted }}</p>
+            <p class="mb-1 text-secondary small">Ngawi, {{ currentDateFormatted }}</p>
             <p class="fw-bold text-dark mb-0">Ketua Panitia Pemilihan OSIS,</p>
             <!-- Ruang tanda tangan resmi -->
             <div class="signature-space my-4" style="height: 65px;"></div>
@@ -409,7 +409,7 @@
               ( {{ committeeChairmanName.trim() || '..................................................' }} )
             </p>
             <p class="text-muted small mb-0">
-              NIS / NIP. {{ committeeChairmanNip.trim() || '......................................' }}
+              NIS . {{ committeeChairmanNip.trim() || '......................................' }}
             </p>
           </div>
         </div>
