@@ -194,7 +194,7 @@
         <div class="col-md-6">
           <div class="p-3 bg-light rounded-3 border">
             <span class="text-muted small d-block">SUPABASE URL:</span>
-            <code class="fw-bold text-primary">https://tbdzqrrlonrfdizdfxar.supabase.co</code>
+            <code class="fw-bold text-primary">https://cuwiqjcmvonjdmghzzul.supabase.co</code>
           </div>
         </div>
         <div class="col-md-6">
@@ -237,7 +237,7 @@
       </div>
     </div>
 
-    <!-- Tab 3: Akun Admin -->
+    <!-- Tab 3: Akun Admin & Pemeliharaan -->
     <div v-show="activeTab === 'account'" class="row g-4 mb-4">
       <div class="col-lg-6">
         <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
@@ -276,15 +276,68 @@
           </form>
         </div>
       </div>
+
+      <!-- Zona Pembersihan / Reset Simulasi Uji Coba -->
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 border-start border-4 border-danger h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h5 class="fw-bold text-danger mb-0">
+                <i class="bi bi-shield-exclamation me-1"></i> Pemeliharaan & Reset Simulasi
+              </h5>
+              <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill small">Danger Zone</span>
+            </div>
+            <p class="text-muted small mb-3">
+              Gunakan fitur ini setelah sesi uji coba / gladi bersih pemilihan selesai untuk mengosongkan suara tanpa menghapus paslon.
+            </p>
+
+            <div class="p-3 bg-light rounded-3 border mb-3">
+              <h6 class="fw-bold text-dark small mb-1">Reset Perolehan Suara Saja (0 Suara)</h6>
+              <p class="text-secondary small mb-2">
+                Mengosongkan semua suara di database Supabase dan server. Token yang terpakai saat uji coba akan kembali aktif (belum memilih).
+              </p>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                :disabled="isResettingVotes"
+                @click="openResetVotesModal"
+              >
+                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                <span v-if="isResettingVotes" class="spinner-border spinner-border-sm me-1"></span>
+                Kosongkan Suara Uji Coba
+              </button>
+            </div>
+          </div>
+
+          <small class="text-muted fst-italic">
+            Catatan: Tindakan ini aman untuk daftar calon kandidat, nama sekolah, dan kop surat.
+          </small>
+        </div>
+      </div>
     </div>
+
+    <!-- Confirm Modal Reset Suara di Settings -->
+    <ConfirmModal
+      :show="showResetVotesModal"
+      title="Konfirmasi Kosongkan Suara Uji Coba"
+      message="PERINGATAN! Seluruh suara masuk di database Supabase dan server akan dikosongkan ke 0. Token yang sempat terpakai saat simulasi akan dipulihkan ke status aktif (belum memilih). Apakah Anda yakin?"
+      confirm-text="Ya, Kosongkan Suara"
+      variant="danger"
+      icon="bi-arrow-counterclockwise"
+      :loading="isResettingVotes"
+      @confirm="executeResetVotes"
+      @cancel="showResetVotesModal = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import AlertMessage from '../../components/common/AlertMessage.vue';
+import ConfirmModal from '../../components/admin/ConfirmModal.vue';
 import { useElectionStore } from '../../stores/election';
 import { settingsService } from '../../services/settingsService';
+import { votingService } from '../../services/votingService';
 import { checkSupabaseStatus } from '../../services/supabase';
 
 const electionStore = useElectionStore();
@@ -295,6 +348,31 @@ const alertMessage = ref(null);
 const alertType = ref('success');
 const sqlCopied = ref(false);
 const supabaseConnected = ref(true);
+
+// Modal Reset Suara di Settings
+const showResetVotesModal = ref(false);
+const isResettingVotes = ref(false);
+
+function openResetVotesModal() {
+  showResetVotesModal.value = true;
+}
+
+async function executeResetVotes() {
+  isResettingVotes.value = true;
+  try {
+    const electionId = electionStore.election?.id;
+    await votingService.resetVotes(electionId, true);
+    await electionStore.fetchElection();
+    alertMessage.value = 'Perolehan suara berhasil dikosongkan (0 suara). Token yang dipakai simulasi telah diaktifkan kembali.';
+    alertType.value = 'success';
+    showResetVotesModal.value = false;
+  } catch (err) {
+    alertMessage.value = 'Gagal mereset perolehan suara: ' + (err.message || 'Kesalahan sistem');
+    alertType.value = 'danger';
+  } finally {
+    isResettingVotes.value = false;
+  }
+}
 
 const newPassword = ref('');
 const confirmPassword = ref('');

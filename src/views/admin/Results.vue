@@ -78,10 +78,31 @@
           Perbarui
         </button>
 
+        <!-- Tombol Reset Perolehan Suara (Simulasi/Uji Coba Selesai) -->
+        <button
+          class="btn btn-outline-danger rounded-pill px-3"
+          :disabled="loading || totalVotes === 0"
+          title="Kosongkan seluruh suara hasil uji coba / simulasi"
+          @click="openResetVotesModal"
+        >
+          <i class="bi bi-arrow-counterclockwise me-1"></i>
+          Reset Suara
+        </button>
+
         <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" @click="printResults">
           <i class="bi bi-printer me-1"></i> Cetak Berita Acara
         </button>
       </div>
+    </div>
+
+    <!-- Alert Notifikasi Tindakan -->
+    <div v-if="actionAlert.message" class="no-print mb-4">
+      <AlertMessage
+        :type="actionAlert.type"
+        :message="actionAlert.message"
+        dismissible
+        @dismiss="actionAlert.message = ''"
+      />
     </div>
 
     <!-- Summary Metrics Bar -->
@@ -413,7 +434,7 @@
                     Tanda Tangan Paslon 1
                   </div>
                   <div class="text-secondary small mb-1" style="font-size: 11px;">
-                    {{  }} &bull; {{  }}
+                    {{ paslon1.chairman_name }} &bull; {{ paslon1.vice_chairman_name }}
                   </div>
                 </div>
                 <!-- Ruang tanda tangan -->
@@ -435,7 +456,7 @@
                     Tanda Tangan Paslon 2
                   </div>
                   <div class="text-secondary small mb-1" style="font-size: 11px;">
-                    {{ p}} &bull; {{ }}
+                    {{ paslon2.chairman_name }} &bull; {{ paslon2.vice_chairman_name }}
                   </div>
                 </div>
                 <!-- Ruang tanda tangan -->
@@ -457,7 +478,7 @@
                     Tanda Tangan Paslon 3
                   </div>
                   <div class="text-secondary small mb-1" style="font-size: 11px;">
-                    {{ }} &bull; {{  }}
+                    {{ paslon3.chairman_name }} &bull; {{ paslon3.vice_chairman_name }}
                   </div>
                 </div>
                 <!-- Ruang tanda tangan -->
@@ -471,15 +492,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirm Modal Reset Suara -->
+    <div class="no-print">
+      <ConfirmModal
+        :show="showResetVotesModal"
+        title="Konfirmasi Reset Perolehan Suara"
+        :message="`PERINGATAN! Anda akan MENGOSONGKAN seluruh ${totalVotes} suara yang telah masuk (di Supabase & sistem). Tindakan ini biasanya dilakukan setelah sesi uji coba/simulasi selesai sebelum hari pemilihan resmi. Apakah Anda yakin?`"
+        confirm-text="Ya, Kosongkan Suara"
+        variant="danger"
+        icon="bi-arrow-counterclockwise"
+        :loading="isResettingVotes"
+        @confirm="confirmResetVotes"
+        @cancel="showResetVotesModal = false"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import AlertMessage from '../../components/common/AlertMessage.vue';
+import ConfirmModal from '../../components/admin/ConfirmModal.vue';
 import { votingService } from '../../services/votingService';
 import { tokenService } from '../../services/tokenService';
-import { settingsService } from '../../services/settingsService';
 import { useElectionStore } from '../../stores/election';
 
 Chart.register(...registerables);
@@ -488,6 +525,41 @@ const electionStore = useElectionStore();
 const loading = ref(false);
 const autoRefresh = ref(true);
 let refreshTimer = null;
+
+// Modal & Notifikasi Reset Suara
+const showResetVotesModal = ref(false);
+const isResettingVotes = ref(false);
+const actionAlert = ref({ type: 'success', message: '' });
+
+function openResetVotesModal() {
+  showResetVotesModal.value = true;
+}
+
+async function confirmResetVotes() {
+  isResettingVotes.value = true;
+  try {
+    const electionId = electionStore.election?.id;
+    // Reset votes sekaligus kembalikan status token yang sempat terpakai saat uji coba
+    await votingService.resetVotes(electionId, true);
+    
+    // Refresh data perolehan suara & dashboard
+    await fetchResultsData();
+    await electionStore.fetchElection();
+    
+    actionAlert.value = {
+      type: 'success',
+      message: 'Perolehan suara berhasil dikosongkan (reset ke 0). Status token terpakai saat simulasi juga telah dipulihkan!',
+    };
+    showResetVotesModal.value = false;
+  } catch (err) {
+    actionAlert.value = {
+      type: 'danger',
+      message: 'Gagal mereset perolehan suara: ' + (err.message || 'Terjadi kesalahan sistem'),
+    };
+  } finally {
+    isResettingVotes.value = false;
+  }
+}
 
 const chartCanvas = ref(null);
 let chartInstance = null;
@@ -548,7 +620,9 @@ const DEFAULT_SCHOOL_LOGO = '/logo-ngawi.svg';
 
 const showKopPreview = ref(false);
 const logoFileInputRef = ref(null);
-const schoolLogoUrl = ref(DEFAULT_SCHOOL_LOGO);
+const schoolLogoUrl = ref(
+  localStorage.getItem('e_osis_kop_logo') || DEFAULT_SCHOOL_LOGO
+);
 
 function triggerLogoUpload() {
   logoFileInputRef.value?.click();
@@ -563,13 +637,17 @@ async function handleLogoFileUpload(event) {
   reader.onload = async (e) => {
     const result = e.target?.result;
     if (result && typeof result === 'string') {
+      schoolLogoUrl.value = result;
+      localStorage.setItem('e_osis_kop_logo', result);
       try {
-        const url = await settingsService.uploadSchoolLogo(file);
-        schoolLogoUrl.value = url;
-        await electionStore.updateElection({ school_logo_url: url });
+        await fetch('/api/upload-logo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo: result }),
+        });
+        await electionStore.updateElection({ school_logo_url: result });
       } catch (err) {
-        console.error('Gagal mengunggah logo:', err);
-        schoolLogoUrl.value = electionStore.election?.school_logo_url || DEFAULT_SCHOOL_LOGO;
+        console.warn('Could not sync logo to server:', err);
       }
     }
   };
@@ -581,6 +659,7 @@ async function saveLogoUrl() {
     schoolLogoUrl.value = DEFAULT_SCHOOL_LOGO;
   }
   const cleanUrl = schoolLogoUrl.value.trim();
+  localStorage.setItem('e_osis_kop_logo', cleanUrl);
   try {
     await electionStore.updateElection({ school_logo_url: cleanUrl });
   } catch (err) {
@@ -590,6 +669,7 @@ async function saveLogoUrl() {
 
 async function resetSchoolLogo() {
   schoolLogoUrl.value = DEFAULT_SCHOOL_LOGO;
+  localStorage.removeItem('e_osis_kop_logo');
   try {
     await electionStore.updateElection({ school_logo_url: DEFAULT_SCHOOL_LOGO });
   } catch (err) {
@@ -604,8 +684,8 @@ function onLogoLoadError() {
 }
 
 // Data Pengesahan Berita Acara (Ketua Panitia & Tanggal)
-const committeeChairmanName = ref('');
-const committeeChairmanNip = ref('');
+const committeeChairmanName = ref(localStorage.getItem('e_osis_chairman_name') || '');
+const committeeChairmanNip = ref(localStorage.getItem('e_osis_chairman_nip') || '');
 const customPrintDate = ref('');
 
 let chairmanSyncDebounce = null;
@@ -625,10 +705,12 @@ function syncChairmanToServer() {
 }
 
 watch(committeeChairmanName, (val) => {
+  localStorage.setItem('e_osis_chairman_name', val);
   syncChairmanToServer();
 });
 
 watch(committeeChairmanNip, (val) => {
+  localStorage.setItem('e_osis_chairman_nip', val);
   syncChairmanToServer();
 });
 
@@ -685,6 +767,7 @@ async function fetchResultsData() {
     if (election) {
       if (election.school_logo_url) {
         schoolLogoUrl.value = election.school_logo_url;
+        localStorage.setItem('e_osis_kop_logo', election.school_logo_url);
       }
       if (election.chairman_name !== undefined && election.chairman_name !== null) {
         if (!committeeChairmanName.value && election.chairman_name) {

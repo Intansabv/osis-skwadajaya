@@ -3,238 +3,238 @@
     <!-- Konten Dashboard Manajemen Token (Hanya tampil di layar monitor, tidak ikut tercetak) -->
     <div class="token-management-dashboard no-print">
       <!-- Header & Actions -->
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-          <h3 class="fw-extrabold text-dark mb-1">Manajemen Token Voting</h3>
-          <p class="text-muted mb-0">
-            Generate dan kelola token autentikasi 6-karakter unik beserta QR Code pemilih
-          </p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h3 class="fw-extrabold text-dark mb-1">Manajemen Token Voting</h3>
+        <p class="text-muted mb-0">
+          Generate dan kelola token autentikasi 6-karakter unik beserta QR Code pemilih
+        </p>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-primary rounded-pill px-3" @click="showBatchModal = true">
+          <i class="bi bi-stack me-1"></i> Generate Massal
+        </button>
+        <button class="btn btn-primary rounded-pill px-3 shadow-sm" @click="showSingleModal = true">
+          <i class="bi bi-plus-lg me-1"></i> Buat Token Baru
+        </button>
+        <button class="btn btn-outline-dark rounded-pill px-3" @click="openPrintCardsModal">
+          <i class="bi bi-printer me-1"></i> Cetak Kartu Token QR
+        </button>
+        <button
+          class="btn btn-outline-danger rounded-pill px-3"
+          :disabled="tokens.length === 0"
+          @click="showClearModal = true"
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus / Bersihkan Token
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Message -->
+    <AlertMessage
+      v-if="alertMessage"
+      :message="alertMessage"
+      :type="alertType"
+      dismissible
+      @close="alertMessage = null"
+    />
+
+    <!-- Filter & Stat Bar -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+          <span class="text-muted small fw-bold">TOTAL TOKEN</span>
+          <h3 class="fw-bold text-dark mb-0">{{ tokens.length }}</h3>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+          <span class="text-muted small fw-bold text-success">BELUM DIGUNAKAN</span>
+          <h3 class="fw-bold text-success mb-0">{{ unusedCount }}</h3>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+          <span class="text-muted small fw-bold text-primary">SUDAH DIGUNAKAN</span>
+          <h3 class="fw-bold text-primary mb-0">{{ usedCount }}</h3>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+          <span class="text-muted small fw-bold text-secondary">NONAKTIF</span>
+          <h3 class="fw-bold text-secondary mb-0">{{ inactiveCount }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tokens Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <input
+            v-model="search"
+            type="text"
+            class="form-control form-control-sm rounded-pill px-3"
+            placeholder="Cari token..."
+            style="max-width: 220px;"
+          />
+          <select v-model="filterStatus" class="form-select form-select-sm rounded-pill" style="width: 160px;">
+            <option value="all">Semua Status</option>
+            <option value="active">Belum Digunakan</option>
+            <option value="used">Sudah Digunakan</option>
+            <option value="inactive">Nonaktif</option>
+          </select>
         </div>
 
+        <span class="text-muted small">
+          Menampilkan {{ filteredTokens.length }} token
+        </span>
+      </div>
+
+      <!-- Selection Action Bar -->
+      <div
+        v-if="selectedTokenIds.length > 0"
+        class="bg-warning bg-opacity-10 border-top border-bottom border-warning border-opacity-25 px-3 px-md-4 py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold">
+            {{ selectedTokenIds.length }} Token Terpilih
+          </span>
+          <span class="small text-muted">dari total {{ filteredTokens.length }} token yang ditampilkan</span>
+        </div>
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-outline-primary rounded-pill px-3" @click="showBatchModal = true">
-            <i class="bi bi-stack me-1"></i> Generate Massal
-          </button>
-          <button class="btn btn-primary rounded-pill px-3 shadow-sm" @click="showSingleModal = true">
-            <i class="bi bi-plus-lg me-1"></i> Buat Token Baru
-          </button>
-          <button class="btn btn-outline-dark rounded-pill px-3" @click="openPrintCardsModal">
-            <i class="bi bi-printer me-1"></i> Cetak Kartu Token QR
+          <button
+            type="button"
+            class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold"
+            @click="openPrintSelectedCards"
+          >
+            <i class="bi bi-printer me-1"></i> Cetak Terpilih ({{ selectedTokenIds.length }})
           </button>
           <button
-            class="btn btn-outline-danger rounded-pill px-3"
-            :disabled="tokens.length === 0"
-            @click="showClearModal = true"
+            type="button"
+            class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold"
+            @click="promptDeleteSelected"
           >
-            <i class="bi bi-trash3 me-1"></i> Hapus / Bersihkan Token
+            <i class="bi bi-trash3-fill me-1"></i> Hapus Terpilih ({{ selectedTokenIds.length }})
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            @click="selectedTokenIds = []"
+          >
+            Batal
           </button>
         </div>
       </div>
 
-      <!-- Alert Message -->
-      <AlertMessage
-        v-if="alertMessage"
-        :message="alertMessage"
-        :type="alertType"
-        dismissible
-        @close="alertMessage = null"
-      />
+      <LoadingSpinner v-if="loading" text="Memuat token..." />
 
-      <!-- Filter & Stat Bar -->
-      <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-md-3">
-          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <span class="text-muted small fw-bold">TOTAL TOKEN</span>
-            <h3 class="fw-bold text-dark mb-0">{{ tokens.length }}</h3>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <span class="text-muted small fw-bold text-success">BELUM DIGUNAKAN</span>
-            <h3 class="fw-bold text-success mb-0">{{ unusedCount }}</h3>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <span class="text-muted small fw-bold text-primary">SUDAH DIGUNAKAN</span>
-            <h3 class="fw-bold text-primary mb-0">{{ usedCount }}</h3>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-3">
-          <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
-            <span class="text-muted small fw-bold text-secondary">NONAKTIF</span>
-            <h3 class="fw-bold text-secondary mb-0">{{ inactiveCount }}</h3>
-          </div>
-        </div>
-      </div>
+      <div v-else class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-light table-light small text-uppercase text-muted">
+            <tr>
+              <th class="ps-3" style="width: 42px;">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  :checked="isAllSelected"
+                  :indeterminate.prop="isIndeterminate"
+                  :disabled="filteredTokens.length === 0"
+                  title="Pilih Semua Token Ditampilkan"
+                  @change="toggleSelectAll"
+                />
+              </th>
+              <th style="width: 45px;">No</th>
+              <th>Token (6 Karakter)</th>
+              <th>QR Code</th>
+              <th>Status</th>
+              <th>Waktu Digunakan</th>
+              <th>Dibuat Pada</th>
+              <th class="text-end pe-4">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="filteredTokens.length === 0">
+              <td colspan="8" class="text-center py-5 text-muted">
+                Tidak ada data token yang cocok.
+              </td>
+            </tr>
 
-      <!-- Tokens Table Card -->
-      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
-        <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <input
-              v-model="search"
-              type="text"
-              class="form-control form-control-sm rounded-pill px-3"
-              placeholder="Cari token..."
-              style="max-width: 220px;"
-            />
-            <select v-model="filterStatus" class="form-select form-select-sm rounded-pill" style="width: 160px;">
-              <option value="all">Semua Status</option>
-              <option value="active">Belum Digunakan</option>
-              <option value="used">Sudah Digunakan</option>
-              <option value="inactive">Nonaktif</option>
-            </select>
-          </div>
-
-          <span class="text-muted small">
-            Menampilkan {{ filteredTokens.length }} token
-          </span>
-        </div>
-
-        <!-- Selection Action Bar -->
-        <div
-          v-if="selectedTokenIds.length > 0"
-          class="bg-warning bg-opacity-10 border-top border-bottom border-warning border-opacity-25 px-3 px-md-4 py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"
-        >
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold">
-              {{ selectedTokenIds.length }} Token Terpilih
-            </span>
-            <span class="small text-muted">dari total {{ filteredTokens.length }} token yang ditampilkan</span>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <button
-              type="button"
-              class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold"
-              @click="openPrintSelectedCards"
+            <tr
+              v-for="(tok, idx) in filteredTokens"
+              :key="tok.id"
+              :class="{ 'table-active': selectedTokenIds.includes(tok.id) }"
             >
-              <i class="bi bi-printer me-1"></i> Cetak Terpilih ({{ selectedTokenIds.length }})
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold"
-              @click="promptDeleteSelected"
-            >
-              <i class="bi bi-trash3-fill me-1"></i> Hapus Terpilih ({{ selectedTokenIds.length }})
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary rounded-pill px-3"
-              @click="selectedTokenIds = []"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-
-        <LoadingSpinner v-if="loading" text="Memuat token..." />
-
-        <div v-else class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light table-light small text-uppercase text-muted">
-              <tr>
-                <th class="ps-3" style="width: 42px;">
-                  <input
-                    type="checkbox"
-                    class="form-check-input"
-                    :checked="isAllSelected"
-                    :indeterminate.prop="isIndeterminate"
-                    :disabled="filteredTokens.length === 0"
-                    title="Pilih Semua Token Ditampilkan"
-                    @change="toggleSelectAll"
-                  />
-                </th>
-                <th style="width: 45px;">No</th>
-                <th>Token (6 Karakter)</th>
-                <th>QR Code</th>
-                <th>Status</th>
-                <th>Waktu Digunakan</th>
-                <th>Dibuat Pada</th>
-                <th class="text-end pe-4">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="filteredTokens.length === 0">
-                <td colspan="8" class="text-center py-5 text-muted">
-                  Tidak ada data token yang cocok.
-                </td>
-              </tr>
-
-              <tr
-                v-for="(tok, idx) in filteredTokens"
-                :key="tok.id"
-                :class="{ 'table-active': selectedTokenIds.includes(tok.id) }"
-              >
-                <td class="ps-3">
-                  <input
-                    v-model="selectedTokenIds"
-                    type="checkbox"
-                    class="form-check-input"
-                    :value="tok.id"
-                  />
-                </td>
-                <td class="text-muted small">{{ idx + 1 }}</td>
-                <td>
-                  <span class="font-monospace fw-bold fs-6 text-primary bg-primary bg-opacity-10 px-2 py-1 rounded">
-                    {{ tok.token }}
-                  </span>
-                  <span v-if="tok.voter_code" class="badge bg-light text-muted border ms-2 small">
-                    {{ tok.voter_code }}
-                  </span>
-                </td>
-                <td>
+              <td class="ps-3">
+                <input
+                  v-model="selectedTokenIds"
+                  type="checkbox"
+                  class="form-check-input"
+                  :value="tok.id"
+                />
+              </td>
+              <td class="text-muted small">{{ idx + 1 }}</td>
+              <td>
+                <span class="font-monospace fw-bold fs-6 text-primary bg-primary bg-opacity-10 px-2 py-1 rounded">
+                  {{ tok.token }}
+                </span>
+                <span v-if="tok.voter_code" class="badge bg-light text-muted border ms-2 small">
+                  {{ tok.voter_code }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-light border rounded-pill px-2 py-1"
+                  @click="previewQR(tok.token)"
+                >
+                  <i class="bi bi-qr-code me-1"></i> Lihat QR
+                </button>
+              </td>
+              <td>
+                <span v-if="tok.status === 'used' || tok.used_at" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill">
+                  Sudah Digunakan
+                </span>
+                <span v-else-if="tok.status === 'active'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill">
+                  Belum Digunakan
+                </span>
+                <span v-else class="badge bg-secondary px-2 py-1 rounded-pill">
+                  Nonaktif
+                </span>
+              </td>
+              <td class="text-muted small">
+                {{ tok.used_at ? formatDateTime(tok.used_at) : '-' }}
+              </td>
+              <td class="text-muted small">
+                {{ formatDateTime(tok.created_at) }}
+              </td>
+              <td class="text-end pe-4">
+                <div class="btn-group btn-group-sm">
+                  <button
+                    v-if="tok.status !== 'used'"
+                    type="button"
+                    :class="['btn', tok.status === 'active' ? 'btn-outline-warning' : 'btn-outline-success']"
+                    :title="tok.status === 'active' ? 'Nonaktifkan Token' : 'Aktifkan Token'"
+                    @click="toggleStatus(tok)"
+                  >
+                    <i :class="['bi', tok.status === 'active' ? 'bi-pause-circle' : 'bi-play-circle']"></i>
+                  </button>
                   <button
                     type="button"
-                    class="btn btn-sm btn-light border rounded-pill px-2 py-1"
-                    @click="previewQR(tok.token)"
+                    class="btn btn-outline-danger"
+                    title="Hapus Token Ini (Satu-per-Satu)"
+                    @click="confirmDelete(tok)"
                   >
-                    <i class="bi bi-qr-code me-1"></i> Lihat QR
+                    <i class="bi bi-trash"></i>
                   </button>
-                </td>
-                <td>
-                  <span v-if="tok.status === 'used' || tok.used_at" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill">
-                    Sudah Digunakan
-                  </span>
-                  <span v-else-if="tok.status === 'active'" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill">
-                    Belum Digunakan
-                  </span>
-                  <span v-else class="badge bg-secondary px-2 py-1 rounded-pill">
-                    Nonaktif
-                  </span>
-                </td>
-                <td class="text-muted small">
-                  {{ tok.used_at ? formatDateTime(tok.used_at) : '-' }}
-                </td>
-                <td class="text-muted small">
-                  {{ formatDateTime(tok.created_at) }}
-                </td>
-                <td class="text-end pe-4">
-                  <div class="btn-group btn-group-sm">
-                    <button
-                      v-if="tok.status !== 'used'"
-                      type="button"
-                      :class="['btn', tok.status === 'active' ? 'btn-outline-warning' : 'btn-outline-success']"
-                      :title="tok.status === 'active' ? 'Nonaktifkan Token' : 'Aktifkan Token'"
-                      @click="toggleStatus(tok)"
-                    >
-                      <i :class="['bi', tok.status === 'active' ? 'bi-pause-circle' : 'bi-play-circle']"></i>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger"
-                      title="Hapus Token Ini (Satu-per-Satu)"
-                      @click="confirmDelete(tok)"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </div>
     </div>
 
     <!-- Modal: Generate Single Token (no-print) -->
@@ -305,7 +305,7 @@
               <label class="form-label text-muted small fw-semibold">Jumlah Token yang Akan Dibuat:</label>
               <div class="d-flex gap-2 mb-2">
                 <button
-                  v-for="amt in [12, 24, 60, 120]"
+                  v-for="amt in [10, 25, 50, 100]"
                   :key="amt"
                   type="button"
                   :class="['btn', 'btn-sm', batchCount === amt ? 'btn-primary' : 'btn-outline-secondary', 'rounded-pill', 'px-3']"
@@ -532,7 +532,6 @@
         </div>
       </div>
     </div>
-
     <!-- Modal: Opsi Pembersihan Token (no-print) -->
     <div v-if="showClearModal" class="modal fade show d-block no-print" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); z-index: 1060;">
       <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -586,9 +585,9 @@
                       </span>
                       <i class="bi bi-exclamation-triangle-fill fs-4 text-danger"></i>
                     </div>
-                    <h6 class="fw-bold text-danger mb-2">Hapus Seluruh Token (Reset Total)</h6>
+                    <h6 class="fw-bold text-danger mb-2">Hapus Seluruh Token & Reset Suara</h6>
                     <p class="text-danger text-opacity-75 small mb-3">
-                      Menghapus <strong>SEMUA</strong> token voting tanpa terkecuali (aktif, terpakai, dan nonaktif). Gunakan opsi ini jika ingin mereset total seluruh token pemilihan.
+                      Menghapus <strong>SEMUA</strong> token voting tanpa terkecuali sekaligus <strong>mengosongkan seluruh perolehan suara</strong>. Gunakan opsi ini jika ingin mereset total seluruh sistem ke kondisi 0.
                     </p>
                   </div>
                   <button
@@ -597,7 +596,7 @@
                     :disabled="tokens.length === 0"
                     @click="promptDeleteAll"
                   >
-                    <i class="bi bi-trash3-fill me-1"></i> Hapus Seluruh Token
+                    <i class="bi bi-trash3-fill me-1"></i> Hapus Semua & Reset Suara
                   </button>
                 </div>
               </div>
@@ -629,7 +628,7 @@
       </div>
     </div>
 
-    <!-- Confirm Modal -->
+    <!-- Confirm Modal (digunakan untuk Hapus 1-per-1, Hapus Terpilih, Hapus Terpakai, & Hapus Seluruh) -->
     <div class="no-print">
       <ConfirmModal
         :show="showConfirmModal"
@@ -651,6 +650,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner.vue';
 import AlertMessage from '../../components/common/AlertMessage.vue';
 import ConfirmModal from '../../components/admin/ConfirmModal.vue';
 import { tokenService } from '../../services/tokenService';
+import { votingService } from '../../services/votingService';
 import { useElectionStore } from '../../stores/election';
 import { generateRandomToken, generateMultipleTokens, generateQRCodeDataUrl } from '../../utils/token';
 import { formatDateTime } from '../../utils/validation';
@@ -674,7 +674,7 @@ const manualToken = ref('');
 const manualVoterCode = ref('');
 
 const showBatchModal = ref(false);
-const batchCount = ref(24);
+const batchCount = ref(25);
 
 const previewQRData = ref(null);
 const showPrintCardsModal = ref(false);
@@ -683,7 +683,6 @@ const printSourceFilter = ref('active'); // 'active' | 'selected' | 'all'
 const printMaxLimit = ref(60);
 const isGeneratingPrintCards = ref(false);
 
-// Perubahan 1: Mengelompokkan per 12 kartu (3x4) per lembar
 const printPages = computed(() => {
   const pages = [];
   const list = printCardsList.value;
@@ -823,7 +822,9 @@ async function reloadPrintCards() {
     } else if (printSourceFilter.value === 'all') {
       source = tokens.value;
     } else {
+      // Default: active tokens that are not yet used
       source = tokens.value.filter((t) => t.status === 'active' && !t.used_at);
+      // Fallback if no unused tokens found
       if (source.length === 0 && tokens.value.length > 0) {
         source = tokens.value;
       }
@@ -885,6 +886,7 @@ async function toggleStatus(tokenItem) {
   }
 }
 
+// 1. HAPUS SATU-PER-SATU
 function confirmDelete(tok) {
   confirmTitle.value = 'Hapus Token Pemilih';
   confirmMessage.value = `Apakah Anda yakin ingin menghapus token "${tok.token}"? Token ini tidak akan dapat digunakan lagi untuk memilih.`;
@@ -900,6 +902,7 @@ function confirmDelete(tok) {
   showConfirmModal.value = true;
 }
 
+// 2. HAPUS TOKEN YANG DIPILIH (CEKLIS)
 function promptDeleteSelected() {
   const count = selectedTokenIds.value.length;
   if (count === 0) return;
@@ -919,6 +922,7 @@ function promptDeleteSelected() {
   showConfirmModal.value = true;
 }
 
+// 3. HAPUS HANYA TOKEN YANG SUDAH DIGUNAKAN
 function promptDeleteUsed() {
   const count = usedCount.value;
   if (count === 0) return;
@@ -937,24 +941,28 @@ function promptDeleteUsed() {
   showConfirmModal.value = true;
 }
 
+// 4. HAPUS SELURUH TOKEN (RESET TOTAL)
 function promptDeleteAll() {
   const count = tokens.value.length;
   if (count === 0) return;
   showClearModal.value = false;
-  confirmTitle.value = 'PERINGATAN: Hapus Seluruh Token';
-  confirmMessage.value = `PERINGATAN KERAS! Anda akan menghapus SELURUH (${count}) token pemilih dari sistem (aktif, terpakai, dan nonaktif). Seluruh data token akan dikosongkan. Apakah Anda yakin ingin melanjutkan?`;
-  confirmBtnText.value = 'Ya, Hapus Seluruh Token';
+  confirmTitle.value = 'PERINGATAN: Hapus Seluruh Token & Reset Suara';
+  confirmMessage.value = `PERINGATAN KERAS! Anda akan menghapus SELURUH (${count}) token pemilih dan MENGOSONGKAN seluruh suara yang telah masuk. Sistem akan kembali bersih ke 0 untuk memulai sesi baru. Apakah Anda yakin ingin melanjutkan?`;
+  confirmBtnText.value = 'Ya, Hapus Semua & Reset Suara';
   confirmVariant.value = 'danger';
   confirmAction.value = async () => {
-    await tokenService.deleteAllTokens(electionStore.election?.id);
+    const electionId = electionStore.election?.id;
+    await tokenService.deleteAllTokens(electionId);
+    await votingService.resetVotes(electionId, true);
     tokens.value = [];
     selectedTokenIds.value = [];
-    alertMessage.value = `Seluruh data token (${count} token) berhasil dihapus bersih dari sistem.`;
+    alertMessage.value = `Seluruh data token (${count} token) dan data suara berhasil dihapus bersih dari sistem.`;
     alertType.value = 'success';
   };
   showConfirmModal.value = true;
 }
 
+// 5. HAPUS TOKEN NONAKTIF
 function promptDeleteInactive() {
   const inactiveTokens = tokens.value.filter((t) => t.status === 'inactive');
   const count = inactiveTokens.length;
@@ -976,6 +984,7 @@ function promptDeleteInactive() {
   showConfirmModal.value = true;
 }
 
+// Eksekutor konfirmasi umum
 async function executeConfirmAction() {
   if (!confirmAction.value) return;
   isProcessingDelete.value = true;
@@ -1171,6 +1180,7 @@ onMounted(() => {
     background: #ffffff !important;
   }
 
+  /* Reset body dan html agar tidak ada scrolling/overflow */
   html,
   body {
     background: #ffffff !important;
@@ -1181,6 +1191,7 @@ onMounted(() => {
     overflow: visible !important;
   }
 
+  /* Reset Bootstrap Modal agar rata dan tidak terpotong */
   .modal {
     position: static !important;
     display: block !important;

@@ -461,6 +461,26 @@ async function startServer() {
     });
   });
 
+  // 5b. Reset Votes (Kosongkan seluruh suara yang masuk & kembalikan status token)
+  app.post('/api/votes/reset', (req, res) => {
+    const { resetTokens = false } = req.body || {};
+    db.votes = [];
+    if (resetTokens) {
+      db.tokens = db.tokens.map((t) => ({
+        ...t,
+        status: t.status === 'used' ? 'active' : t.status,
+        used_at: null,
+      }));
+    }
+    saveDB();
+    res.json({
+      success: true,
+      message: 'Seluruh perolehan suara berhasil dikosongkan (reset ke 0)',
+      votesCount: 0,
+      tokensCount: db.tokens.length,
+    });
+  });
+
   // 6. Reset database to initial seed (if needed)
   app.post('/api/reset-data', (req, res) => {
     try {

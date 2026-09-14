@@ -120,7 +120,7 @@
                 </span>
               </td>
               <td>
-                <span class="fw-semibold text-dark">{{ voter.voter_name || 'Siswa Pemilih ' + (index + 1) }}</span>
+                <span class="fw-semibold text-dark">{{ voter.voter_name || 'Pemilih ' + (index + 1) }}</span>
               </td>
               <td>
                 <span class="font-monospace fw-bold text-primary bg-primary bg-opacity-10 px-2 py-1 rounded">
