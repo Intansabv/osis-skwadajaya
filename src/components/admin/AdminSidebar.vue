@@ -42,7 +42,7 @@
             active-class="active bg-primary text-white shadow-sm"
           >
             <i class="bi bi-people-fill fs-5"></i>
-            <span class="fw-semibold">Siswa/Pemilih</span>
+            <span class="fw-semibold">Pemilih</span>
           </router-link>
         </li>
 
